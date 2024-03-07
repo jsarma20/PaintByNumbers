@@ -30,25 +30,11 @@ RUN pip install \
 RUN apt-get update
 # Use a slim version of the base Python image to reduce the final image size
 
-RUN mkdir -p /root/.ssh
-
-RUN touch /root/.ssh/known_hosts
-RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
-
-COPY aws-lambda /root/.ssh/id_rsa
-RUN chmod 400 /root/.ssh/id_rsa
-
-RUN touch /root/.ssh/config
-RUN echo ' \n Host github.com \n \
-  AddKeysToAgent yes \n \
-  IdentityFile /root/.ssh/id_rsa' >> /root/.ssh/config
-
-
 
 WORKDIR ${FUNCTION_DIR}
 ENV ROOT_DIR=${FUNCTION_DIR}
 
-RUN git clone git@github.com:jsarma20/aws-painting-lambda.git -q
+RUN git clone https://github.com/jsarma20/aws-lambda-pbn -q
 WORKDIR aws-painting-lambda/service
 
 WORKDIR bin
