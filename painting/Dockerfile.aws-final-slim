@@ -1,0 +1,44 @@
+# Define custom function directory
+ARG FUNCTION_DIR="/function"
+
+FROM image-pbn-final:local
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
+WORKDIR $FUNCTION_DIR
+ENV DEP_DIR=$FUNCTION_DIR/dep
+WORKDIR $DEP_DIR
+
+RUN rm *.tar.gz
+
+WORKDIR opencv-4.9.0
+
+RUN ls `pwd`
+
+RUN mv -f build-release ../
+
+RUN rm -rf *
+RUN mv -f ../build-release .
+
+WORKDIR build-release
+RUN mv -f lib ../
+
+RUN rm -rf * && rm -rf .[!.]*
+RUN mv -f ../lib .
+
+
+WORKDIR $DEP_DIR/spdlog
+
+RUN mv -f build-release ../
+
+RUN rm -rf * && rm -rf .[!.]*
+RUN mv -f ../build-release .
+WORKDIR build-release
+
+
+WORKDIR $FUNCTION_DIR
+
+RUN rm aws-lambda.pub aws-lambda "aws-lambda copy" Dockerfile*
+
+RUN apt-get -y purge git build-essential cmake wget gcc

@@ -1,0 +1,6 @@
+
+set(CATCH2_TEST_SRC
+${CMAKE_CURRENT_SOURCE_DIR}/timage.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/tpainting.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/performance.cpp
+PARENT_SCOPE)

@@ -1,0 +1,68 @@
+# Define custom function directory
+ARG FUNCTION_DIR="/function"
+
+FROM image-cpp-deps:local
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
+
+# Copy function code
+#RUN mkdir -p ${FUNCTION_DIR}
+#COPY . ${FUNCTION_DIR}
+
+# build paint by numbers
+WORKDIR $FUNCTION_DIR
+COPY pbnMain.cpp .
+ENV PBN_BIN_DIR=$FUNCTION_DIR/build
+WORKDIR $PBN_BIN_DIR
+RUN rm -rf *
+RUN cmake ..
+RUN make -j7
+
+WORKDIR $FUNCTION_DIR
+
+
+# Install the function's dependencies
+RUN pip install \
+    --target ${FUNCTION_DIR} \
+        awslambdaric
+RUN apt-get update
+# Use a slim version of the base Python image to reduce the final image size
+
+RUN mkdir -p /root/.ssh
+
+RUN touch /root/.ssh/known_hosts
+RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
+
+COPY aws-lambda /root/.ssh/id_rsa
+RUN chmod 400 /root/.ssh/id_rsa
+
+RUN touch /root/.ssh/config
+RUN echo ' \n Host github.com \n \
+  AddKeysToAgent yes \n \
+  IdentityFile /root/.ssh/id_rsa' >> /root/.ssh/config
+
+
+
+WORKDIR ${FUNCTION_DIR}
+ENV ROOT_DIR=${FUNCTION_DIR}
+
+RUN git clone git@github.com:jsarma20/aws-painting-lambda.git -q
+WORKDIR aws-painting-lambda/service
+
+WORKDIR bin
+
+RUN cp -r $FUNCTION_DIR/build/* .
+
+
+# Set runtime interface client as default command for the container runtime
+ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
+# # Pass the name of the function handler as an argument to the runtime
+CMD [ "aws-painting-lambda.lambda_function.handler" ]
+
+WORKDIR $FUNCTION_DIR
+
+
+
+

@@ -1,0 +1,55 @@
+ARG FUNCTION_DIR="/function"
+
+FROM image-cpp-base:local
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+
+# build pbn
+ENV DEP_DIR=$FUNCTION_DIR/dep
+
+WORKDIR $DEP_DIR
+
+# checkout openCV
+ENV OPENCV_VER=4.9.0
+ENV OPENCV_DIR_NAME=opencv-${OPENCV_VER}
+RUN wget https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_VER}.tar.gz
+
+RUN tar xzf 4.9.0.tar.gz
+WORKDIR $OPENCV_DIR_NAME
+
+#build openCV
+
+WORKDIR build-release
+RUN cmake  -DCMAKE_BUILD_TYPE=Release .. \
+            -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF \
+            -DBUILD_opencv_calib3d=OFF -DBUILD_opencv_dnn=OFF -DBUILD_opencv_gapi=OFF\
+            -DBUILD_opencv_video=OFF -DBUILD_opencv_videoio=OFF -DBUILD_opencv_stitching=OFF\
+            -DBUILD_opencv_ml=OFF -DBUILD_opencv_ts=OFF -DBUILD_opencv_photo=OFF\
+            -DBUILD_opencv_features2d=OFF -DBUILD_opencv_flann=OFF -DBUILD_opencv_app=OFF
+RUN make -j7
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${DEP_DIR}/${OPENCV_DIR_NAME}/build-release/lib
+
+WORKDIR $DEP_DIR
+
+
+# checkout spdlog and build
+RUN git clone https://github.com/gabime/spdlog.git
+WORKDIR spdlog
+RUN git checkout v1.x
+
+WORKDIR build-release
+RUN cmake .. 
+RUN make -j7
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${DEP_DIR}/spdlog/build-release/lib
+
+
+WORKDIR $DEP_DIR
+RUN echo ' \n\
+set(OpenCV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/opencv_dir/build-release PARENT_SCOPE) \n\
+set(spdlog_DIR ${CMAKE_CURRENT_SOURCE_DIR}/spdlog/build-release PARENT_SCOPE)' > CMakeLists.txt
+
+RUN sed -i "s/opencv_dir/${OPENCV_DIR_NAME}/g" CMakeLists.txt
+
+
+
